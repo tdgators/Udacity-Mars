@@ -8,6 +8,7 @@ const Immutable = require('immutable')
 const app = express()
 const port = 3000
 const serverIp = process.env.SERVER_IP || "localhost"
+let count = 1;
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
@@ -22,6 +23,8 @@ app.use('/', express.static(path.join(__dirname, '../public')))
 //console.log(`${process.env.API_KEY}`)
 app.get('/apod', async (req, res) => {
     try {
+        console.log("Fetching via NASA API - Count: " + count)
+        count++
         let image = await fetch(`https://api.nasa.gov/planetary/apod?api_key=${process.env.API_KEY}`)
             .then(res => res.json())
         res.send({ image })
@@ -32,6 +35,8 @@ app.get('/apod', async (req, res) => {
 
 app.get('/rover/:rovername/manifest', async (req, res) => {
     try {
+        console.log("Fetching via NASA API - Count: " + count)
+        count++
         const date = req.params.date;
         let manifest = await fetch(`https://api.nasa.gov/mars-photos/api/v1/manifests/${req.params.rovername}?api_key=${process.env.API_KEY}`)
             .then(res => res.json())
@@ -44,15 +49,19 @@ app.get('/rover/:rovername/manifest', async (req, res) => {
 
 app.get('/rover/:rovername/:date', async (req, res) => {
     try {
+        console.log("Fetching via NASA API - Count: " + count)
+        count++
         const date = req.params.date;
+        const roverName = req.params.rovername;
         if (date == "null") {
-            let image = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.params.rovername}/photos?api_key=${process.env.API_KEY}`)
+            let image = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${roverName}/photos?api_key=${process.env.API_KEY}`)
                 .then(res => res.json())
-            res.send({ image })
+            res.send(image)
         } else {
-            let image = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.params.rovername}/photos?earth_date=${date}&api_key=${process.env.API_KEY}`)
+            let image = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${roverName}/photos?earth_date=${date}&api_key=${process.env.API_KEY}`)
                 .then(res => res.json())
-            res.send({ image })
+            //console.log(image);
+            res.send(image)
         }
     } catch (err) {
         console.log('error:', err);

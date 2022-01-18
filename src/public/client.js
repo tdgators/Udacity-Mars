@@ -47,6 +47,7 @@ const App = (state) => {
                 ${RoverComponent(rover)}
             </section>
         </main>
+        <hr>
         <footer>By Tom Donnelly for Udacity Intermediate Javascript Course</footer>
     `
 }
@@ -129,22 +130,23 @@ const RoverComponent = (rover) => {
             <h3>See the latest pictures from a Mars Rover by selecting the rover:</h3>
             <button onclick="updateRoverName(this)" value="">Back</button>
             <dl>
-              <dt>Rover Name</dt>
+              <dt>Rover Name:</dt>
               <dd>${roverName}</dt>
 
-              <dt>Launch Date</dt>
+              <dt>Launch Date:</dt>
               <dd>${roverData.photo_manifest.launch_date}</dt>
 
-              <dt>Status</dt>
+              <dt>Status:</dt>
               <dd>${roverData.photo_manifest.status}</dt>
 
-              <dt>Most recently available photos</dt>
+              <dt>Most recently available photos:</dt>
               <dd>${roverData.photo_manifest.total_photos}</dt>
 
-              <dt>Date the most recent photos were taken</dt>
+              <dt>Date the most recent photos were taken:</dt>
               <dd>${roverData.photo_manifest.max_date}</dt>
             </dl>
-
+            ${RoverPhotos(roverName)}
+            <br><br><button onclick="updateRoverName(this)" value="">Back</button>
         `)
     } else {
       return (`
@@ -164,7 +166,7 @@ const RoverComponent = (rover) => {
             <button onclick="updateRoverName(this)" value="Opportunity">Opportunity</button>
             <button onclick="updateRoverName(this)" value="Spirit">Spirit</button>
           </ul>
-          <hr>
+          <br><br>
       `)
     }
 }
@@ -174,35 +176,34 @@ const RoverPhotos = (rover) => {
     // If image does not already exist, or it is not from today -- request it again
     const roverName = store.getIn(['rover', 'name'])
     const roverData = store.getIn(['rover', 'data'])
-    const roverPhotos = store.getIn(['photos', 'photos'])
+    const roverPhotos = store.get('photos')
+    console.log("photos: " + console.log(store.get('photos')))
 
     console.log("roverName: " + roverName);
     console.log("roverData: " + roverData);
+    console.log("roverPhotos: " + roverPhotos);
 
     let photosArray = []
 
     if (roverName && (roverName !== '') && roverData && roverData.photo_manifest && roverData.photo_manifest.max_date && (!roverPhotos)) {
-      const getDate = roverData.photo_manifest.max_date
-      getRoverPhotos(roverName, getDate);
+        const getDate = roverData.photo_manifest.max_date
+        const tempPhotos = getRoverPhotos(roverName, getDate);
+        console.log("tempPhotos: " + tempPhotos)
     }
 
-    if (roverPhotos && roverPhotos.rover && roverPhotos.rover.name && (roverPhotos.rover.name[0] == roverName)) {
-      photosArray = roverPhotos;
-    } else {
-      updateStore(store, { "photos" : '' });
-    }
+    let photosHtml = `<h3>Rover ${roverName}'s Photos</h3>`
 
-    let photosHtml = `<h3>Rover Photos</h3>`
-
-    if (photosArray.length > 0) {
-      const tempHtml = photosArray.map(x => `<img src="${x.img_src}" alt="${x.camera.full_name}">`)
-      photosHtml = photosHtml + tempHtml;
+    if (roverPhotos && (roverPhotos.photos) && (roverPhotos.photos.length > 0) && roverPhotos.photos[0].rover && roverPhotos.photos[0].rover.name && (roverPhotos.photos[0].rover.name == roverName)) {
+        photosArray = roverPhotos.photos
+        const tempHtml = photosArray.map(x => `<img src="${x.img_src}" alt="${x.camera.full_name}">`)
+        photosHtml = photosHtml + tempHtml;
+    } else if (roverPhotos && (roverPhotos.photos) && (roverPhotos.photos.length > 0) && roverPhotos.photos[0].rover && roverPhotos.photos[0].rover.name && (roverPhotos.photos[0].rover.name !== roverName)) {
+        updateStore(store, { "photos" : '' });
     } else {
-      photosHtml = photosHtml + `<p>No Photos Available</p>`
+        photosHtml = photosHtml + `<p>No Photos Available</p>`
     }
 
     return photosHtml;
-
 }
 
 // ------------------------------------------------------  HELPERS
@@ -216,7 +217,7 @@ const dateString = (dateObject) => {
 
 const updateRoverName = (btn) => {
     console.log(btn);
-    updateStore(store, { "rover": { "name" : btn.value }, "photos" : ''});
+    updateStore(store, { "rover": { "name" : btn.value }, "photos": ''});
 }
 
 // ------------------------------------------------------  API CALLS
@@ -245,8 +246,10 @@ const getRoverManifest = (name) => {
 const getRoverPhotos = (name, dateString="null") => {
     fetch(`http://localhost:3000/rover/${name}/${dateString}`)
         .then(res => res.json())
-        .then(rover => updateStore(store, { "photos": rover }))
-    return ;
+        .then(photos => {
+          updateStore(store, { "photos": photos })
+          return photos;
+        })
 }
 
 const getRovers = (state) => {
