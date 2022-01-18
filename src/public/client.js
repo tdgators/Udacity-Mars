@@ -1,28 +1,15 @@
-// Immutable = require('immutable')
-//import Immutable from 'immutable'
-
 let store = Immutable.Map({
     today: '',
     rover: '',
     photos: '',
-    user: Immutable.Map({ name: "Student" }),
-    apod: '',
     rovers: Immutable.List(['Curiosity', 'Opportunity', 'Spirit'])
 })
-
-let current = 0
-let stop = 5
 
 // add our markup to the page
 const root = document.getElementById('root')
 
 const updateStore = (state, newState) => {
     store = state.merge(newState)
-    console.log(store);
-    if(current < stop) {
-
-    }
-
     render(root, store)
 }
 
@@ -30,21 +17,14 @@ const render = async (root, state) => {
     root.innerHTML = App(state)
 }
 
-
 // create content
 const App = (state) => {
-    //console.log(state)
-    let rover = state.get('rover')
-    let rovers = state.get('rovers')
-    let apod = state.get('apod')
-    //console.log(rovers);
-
     return `
         <header></header>
         <main>
-            ${Greeting(state.getIn(['user', 'name']))}
+            ${Greeting()}
             <section>
-                ${RoverComponent(rover)}
+                ${RoverComponent()}
             </section>
         </main>
         <hr>
@@ -59,66 +39,23 @@ window.addEventListener('load', () => {
 
 // ------------------------------------------------------  COMPONENTS
 
-// Pure function that renders conditional information -- THIS IS JUST AN EXAMPLE, you can delete it.
-const Greeting = (name) => {
-    if (name) {
-        return `
-            <h1>Welcome, ${name}!</h1>
-        `
-    }
-
+// Pure function that renders conditional information
+const Greeting = () => {
     return `
-        <h1>Hello!</h1>
+        <h1>Welcome to the Mars Rover Photo Gallery</h1>
     `
 }
 
 // Example of a pure function that renders infomation requested from the backend
-const ImageOfTheDay = (apod) => {
-    // If image does not already exist, or it is not from today -- request it again
-    console.log(apod)
-    console.log(apod.image)
-    const today = new Date()
+const RoverComponent = () => {
 
-    console.log(today.getDate())
-
-    //console.log(photodate.getDate() === today.getDate());
-    if (!apod ) {//apod.date is undefined? === today.getDate() ) {
-        getImageOfTheDay(store)
-    } else {
-        const imageDate = new Date(apod.image.date)
-        if (imageDate.getDate() !== today.getDate()) {
-            getImageOfTheDay(store)
-        }
-        // check if the photo of the day is actually type video!
-        if (apod.media_type === "video") {
-            return (`
-                <p>See today's featured video <a href="${apod.get('url')}">here</a></p>
-                <p>${apod.title}</p>
-                <p>${apod.explanation}</p>
-            `)
-        } else {
-            return (`
-                <img src="${apod.image.url}" height="350px" width="100%" />
-                <p>${apod.image.explanation}</p>
-            `)
-        }
-    }
-}
-
-const RoverComponent = (rover) => {
-
-    // If image does not already exist, or it is not from today -- request it again
     const roverName = store.getIn(['rover', 'name'])
     const roverData = store.getIn(['rover', 'data'])
     const today = dateString(new Date());
-    //console.log(store.get('today'))
-    //console.log(today)
+
     if (store.get('today') !== today) {
       updateStore(store, { "today": today });
     }
-
-    console.log("roverName: " + roverName);
-    console.log("roverData: " + roverData);
 
     if (roverName && (roverName !== '') && (!roverData || (roverData == ''))) {
       getRoverManifest(roverName);
@@ -127,7 +64,6 @@ const RoverComponent = (rover) => {
     if (roverName && roverData && (roverName !== '') && (roverData !== '') && (roverData.photo_manifest)) {
         // check if the photo of the day is actually type video!
         return (`
-            <h3>See the latest pictures from a Mars Rover by selecting the rover:</h3>
             <button onclick="updateRoverName(this)" value="">Back</button>
             <dl>
               <dt>Rover Name:</dt>
@@ -140,7 +76,7 @@ const RoverComponent = (rover) => {
               <dd>${roverData.photo_manifest.status}</dt>
 
               <dt>Most recently available photos:</dt>
-              <dd>${roverData.photo_manifest.total_photos}</dt>
+              <dd>${roverData.photo_manifest.photos[roverData.photo_manifest.photos.length - 1].total_photos.toLocaleString()}</dt>
 
               <dt>Date the most recent photos were taken:</dt>
               <dd>${roverData.photo_manifest.max_date}</dt>
@@ -172,31 +108,25 @@ const RoverComponent = (rover) => {
 }
 
 const RoverPhotos = (rover) => {
-
-    // If image does not already exist, or it is not from today -- request it again
     const roverName = store.getIn(['rover', 'name'])
     const roverData = store.getIn(['rover', 'data'])
     const roverPhotos = store.get('photos')
-    console.log("photos: " + console.log(store.get('photos')))
 
-    console.log("roverName: " + roverName);
-    console.log("roverData: " + roverData);
-    console.log("roverPhotos: " + roverPhotos);
+    //console.log("roverName: " + roverName);
+    //console.log("roverData: " + roverData);
+    //console.log("roverPhotos: " + roverPhotos);
 
     let photosArray = []
 
     if (roverName && (roverName !== '') && roverData && roverData.photo_manifest && roverData.photo_manifest.max_date && (!roverPhotos)) {
         const getDate = roverData.photo_manifest.max_date
-        const tempPhotos = getRoverPhotos(roverName, getDate);
-        console.log("tempPhotos: " + tempPhotos)
+        getRoverPhotos(roverName, getDate);
     }
 
-    let photosHtml = `<h3>Rover ${roverName}'s Photos</h3>`
+    let photosHtml = `<h3>Rover ${roverName}'s Most Recent Photos (${roverData.photo_manifest.photos[roverData.photo_manifest.photos.length - 1].total_photos}):</h3>`
 
     if (roverPhotos && (roverPhotos.photos) && (roverPhotos.photos.length > 0) && roverPhotos.photos[0].rover && roverPhotos.photos[0].rover.name && (roverPhotos.photos[0].rover.name == roverName)) {
-        photosArray = roverPhotos.photos
-        const tempHtml = photosArray.map(x => `<img src="${x.img_src}" alt="${x.camera.full_name}">`)
-        photosHtml = photosHtml + tempHtml;
+        photosHtml = photosHtml + roverPhotos.photos.map(x => `<img src="${x.img_src}" alt="${x.camera.full_name}">`)
     } else if (roverPhotos && (roverPhotos.photos) && (roverPhotos.photos.length > 0) && roverPhotos.photos[0].rover && roverPhotos.photos[0].rover.name && (roverPhotos.photos[0].rover.name !== roverName)) {
         updateStore(store, { "photos" : '' });
     } else {
@@ -208,64 +138,27 @@ const RoverPhotos = (rover) => {
 
 // ------------------------------------------------------  HELPERS
 
-// PURE FUNCTION
+// PURE FUNCTION - Higher Order Functions
 const dateString = (dateObject) => {
     const todayString = dateObject.getFullYear() + '-' + dateObject.getMonth()+1 + '-' + dateObject.getDate();
-    console.log(todayString);
     return todayString;
 }
 
 const updateRoverName = (btn) => {
-    console.log(btn);
     updateStore(store, { "rover": { "name" : btn.value }, "photos": ''});
 }
 
 // ------------------------------------------------------  API CALLS
 
 // Example API call
-const getImageOfTheDay = (state) => {
-    console.log(state);
-    let { apod } = state
-
-    fetch(`http://localhost:3000/apod`)
-        .then(res => res.json())
-        .then(apod => updateStore(store, { apod }))
-
-    return ;
-}
-
 const getRoverManifest = (name) => {
     fetch(`http://localhost:3000/rover/${name}/manifest`)
         .then(res => res.json())
-        .then(rover => {
-          updateStore(store, { "rover": { "name": name, "data": rover }})
-          return rover;
-        })
+        .then(rover => updateStore(store, { "rover": { "name": name, "data": rover }}))
 }
 
 const getRoverPhotos = (name, dateString="null") => {
     fetch(`http://localhost:3000/rover/${name}/${dateString}`)
         .then(res => res.json())
-        .then(photos => {
-          updateStore(store, { "photos": photos })
-          return photos;
-        })
-}
-
-const getRovers = (state) => {
-    let rovers = state.get('rovers');
-    let roverMenu = rovers.map((element, index, array) => {
-        let tempObj = {}
-        fetch(`http://localhost:3000/rovers`)
-            .then(res => res.json())
-            .then(rovers => updateStore(store, { rovers }))
-        if ((res) && (res.photos) && (res.photos.length > 0)) {
-          //console.log(roverData.photos[0])
-          tempObj[element] = res.photos[0]
-          console.log(tempObj);
-        }
-        return tempObj;
-    })
-
-    return ;
+        .then(photos => updateStore(store, { "photos": photos }))
 }
