@@ -30,22 +30,44 @@ app.get('/apod', async (req, res) => {
     }
 })
 
-app.get('/rover/:rovername/:date', async (req, res) => {
+app.get('/rover/:rovername/manifest', async (req, res) => {
     try {
-        let image = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.params.rovername}/photos?earth_date=${req.params.date}&api_key=${process.env.API_KEY}`)
+        const date = req.params.date;
+        let manifest = await fetch(`https://api.nasa.gov/mars-photos/api/v1/manifests/${req.params.rovername}?api_key=${process.env.API_KEY}`)
             .then(res => res.json())
-        res.send({ image })
+        res.send(manifest)
+
     } catch (err) {
         console.log('error:', err);
     }
 })
+
+app.get('/rover/:rovername/:date', async (req, res) => {
+    try {
+        const date = req.params.date;
+        if (date == "null") {
+            let image = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.params.rovername}/photos?api_key=${process.env.API_KEY}`)
+                .then(res => res.json())
+            res.send({ image })
+        } else {
+            let image = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.params.rovername}/photos?earth_date=${date}&api_key=${process.env.API_KEY}`)
+                .then(res => res.json())
+            res.send({ image })
+        }
+    } catch (err) {
+        console.log('error:', err);
+    }
+})
+
+
+
 
 app.get('/rovers/:date', async (req, res) => {
     try {
         const roverArray = ['Curiosity', 'Opportunity', 'Spirit']
         let roverMenu = await roverArray.map(async (element, index, array) => {
             let tempObj = {}
-            const roverData = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${element}/photos?earth_date=${req.params.date}&camera=navcam&api_key=${process.env.API_KEY}`)
+            const roverData = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${element}/photos?api_key=${process.env.API_KEY}`)
             const roverJson = await roverData.json()
             //  .then(res => res.json())
             //console.log(roverJson);
